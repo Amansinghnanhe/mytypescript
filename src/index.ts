@@ -1,9 +1,5 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { authMiddleware } from './middleware/auth.middleware'; 
-import { getUser } from './controllers/user.controller'; 
-
-
 
 dotenv.config();
 
@@ -30,15 +26,6 @@ app.post('/register', (req:any, res:any) => {
 app.post('/login', (req:any, res:any) => {
   const { email, password } = req.body;
   res.json({ message: 'Login successful' });
-});
-
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
-});
-app.get('/me', authMiddleware, getUser); 
-
-app.listen(3000, () => {
-  console.log('Server running at http://localhost:3000');
 });
 
 app.listen(PORT, () => {
