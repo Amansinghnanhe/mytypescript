@@ -1,11 +1,21 @@
-import express from 'express';
-import { register, login, getUser } from '../controllers/user.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { Router } from 'express';
+import {
+  registerUser,
+  loginUser,
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser
+} from '../controllers/user.controller';
 
-const router = express.Router();
+const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/me', authMiddleware, getUser);
+router.post('/register', registerUser);
+router.post('/login', loginUser);
+
+router.get('/', getAllUsers);
+router.get('/:id', getUserById);
+router.put('/:id', updateUser);
+router.delete('/:id', deleteUser);
 
 export default router;

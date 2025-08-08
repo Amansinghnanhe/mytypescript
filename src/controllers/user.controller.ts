@@ -1,52 +1,87 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import fs from 'fs';
-import path from 'path';
-import { findUserByEmail, createUser, getUserById } from '../models/user.model';
-import { generateToken } from '../utils/jwt';
 
-const logPath = path.join(__dirname, '../logs/login.log');
+let users: any[] = [];
+let idCounter = 1;
 
-export const register = async (req: Request, res: Response) => {
-    const { fullname, email, password, status } = req.body;
-    const existingUser = await findUserByEmail(email);
+export const registerUser = (req: Request, res: Response) => {
+  const { fullname, email, password, status } = req.body;
 
-    if (existingUser) return res.status(409).json({ message: 'Email already exists' });
+  if (!fullname || !email || !password || !status) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await createUser(fullname, email, hashedPassword, status);
-    res.status(201).json({ message: 'User registered successfully' });
+  const newUser = {
+    id: idCounter++,
+    fullname,
+    email,
+    password, 
+    status
+  };
+
+  users.push(newUser);
+
+  return res.status(201).json({
+    message: 'User registered successfully',
+    user: newUser
+  });
+};
+export const loginUser = (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  const user = users.find(u => u.email === email && u.password === password);
+
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid email or password' });
+  }
+
+  res.status(200).json({
+    message: 'Login successful',
+    token: 'dummy-token'
+  });
 };
 
-export const login = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    const user: any = await findUserByEmail(email);
-
-    const logEntry = `[${new Date().toISOString()}] Email: ${email} - `;
-
-    if (!user) {
-        fs.appendFileSync(logPath, logEntry + 'Failed (User not found)\n');
-        return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const match = await bcrypt.compare(password, user.password);
-
-    if (!match) {
-        fs.appendFileSync(logPath, logEntry + 'Failed (Incorrect password)\n');
-        return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = generateToken({ id: user.id, email: user.email });
-    fs.appendFileSync(logPath, logEntry + 'Success\n');
-
-    res.json({ message: 'Login successful', token });
+export const getAllUsers = (req: Request, res: Response) => {
+  res.json(users);
 };
 
-export const getUser = async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
-    const user = await getUserById(userId);
+export const getUserById = (req: Request, res: Response) => {
+  const user = users.find(u => u.id === parseInt(req.params.id));
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.json(user);
+};
 
-    if (!user) return res.status(404).json({ message: 'User not found' });
+export const updateUser = (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  const { fullname, email, status } = req.body;
 
-    res.json(user);
+  const userIndex = users.findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  users[userIndex] = {
+    ...users[userIndex],
+    fullname: fullname || users[userIndex].fullname,
+    email: email || users[userIndex].email,
+    status: status || users[userIndex].status
+  };
+
+  res.json({
+    message: 'User updated successfully',
+    user: users[userIndex]
+  });
+};
+
+export const deleteUser = (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+
+  const userIndex = users.findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  users.splice(userIndex, 1);
+  res.json({ message: 'User deleted successfully' });
 };
